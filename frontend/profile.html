@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Digital Profile - GarderobeAI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .profile-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        .measurement-card {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+        }
+        .slider-group { margin-bottom: 20px; }
+        .slider-group label { 
+            display: flex; 
+            justify-content: space-between; 
+            font-size: 0.9rem; 
+            color: #94a3b8; 
+            margin-bottom: 8px; 
+            font-weight: 600;
+        }
+        .slider-group label span { color: var(--primary-color); }
+        input[type="range"] {
+            width: 100%;
+            -webkit-appearance: none;
+            background: rgba(255,255,255,0.1);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 18px; height: 18px;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 15px var(--primary-color);
+            transition: 0.2s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+        .skintone-picker {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+        .skintone-option {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: 0.2s;
+        }
+        .skintone-option:hover { transform: scale(1.1); }
+        .skintone-option.active { border-color: #fff; box-shadow: 0 0 10px rgba(255,255,255,0.5); }
+
+        .save-btn {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary-gradient);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            margin-top: 2rem;
+            transition: 0.3s;
+            box-shadow: 0 10px 20px rgba(139, 92, 246, 0.3);
+        }
+        .save-btn:hover { transform: translateY(-3px); box-shadow: 0 15px 30px rgba(139, 92, 246, 0.4); }
+        
+        .status-msg {
+            text-align: center;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            min-height: 1.2rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="page-bg"></div>
+    <div class="page-overlay"></div>
+    <nav>
+        <a href="welcome.html" class="logo-container">
+            <img src="assets/logo_clean.png" alt="GarderobeAI" class="logo-img">
+            <span class="logo">GarderobeAI</span>
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html">My Wardrobe</a>
+            <a href="upload.html">Upload</a>
+            <a href="recommend.html">Get Outfit</a>
+            <a href="mannequin.html">3D View</a>
+            <a href="profile.html" style="color: #fff;">Profile</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container animate-in">
+        <div style="max-width: 800px; margin: 0 auto;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+                <h1>Digital Twin Profile</h1>
+                <button id="save-profile" class="btn btn-primary">Save Digital Twin</button>
+            </div>
+            
+            <p id="status-msg" style="text-align: center; font-weight: 600; margin-bottom: 1rem;"></p>
+
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+                <div class="glass-panel">
+                    <h3>Body Measurements</h3>
+                    <div class="slider-group">
+                        <label>Height (cm)</label>
+                        <input type="number" id="p-height" class="form-control" value="170" min="140" max="220" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    <div class="slider-group">
+                        <label>Weight (kg)</label>
+                        <input type="number" id="p-weight" class="form-control" value="65" min="30" max="200" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    <div class="slider-group">
+                        <label>Bust/Chest (cm)</label>
+                        <input type="number" id="p-chest" class="form-control" value="92" min="60" max="150" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    <div class="slider-group">
+                        <label>Waist (cm)</label>
+                        <input type="number" id="p-waist" class="form-control" value="68" min="40" max="130" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                </div>
+                <div>
+                    <div class="slider-group" style="margin-top: 2.5rem;">
+                        <label>Hips (cm)</label>
+                        <input type="number" id="p-hips" class="form-control" value="95" min="60" max="150" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    <div class="slider-group">
+                        <label>Shoulder Width (cm)</label>
+                        <input type="number" id="p-shoulders" class="form-control" value="40" min="20" max="60" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    <div class="slider-group">
+                        <label>Leg Length (cm)</label>
+                        <input type="number" id="p-legs" class="form-control" value="80" min="50" max="120" style="background: rgba(255,255,255,0.05); color: #fff; border: 1px solid rgba(255,255,255,0.1); padding: 8px 12px; border-radius: 8px; width: 100%;">
+                    </div>
+                    
+                    <h3 style="margin-top: 2rem;">Aesthetic Identity</h3>
+                    
+                    <div class="slider-group">
+                        <label>Gender Identity</label>
+                        <div style="display: flex; gap: 1rem; margin-top: 8px;">
+                            <button id="gender-male" class="btn btn-outline" style="flex: 1; border-radius: 8px; padding: 10px;">Male</button>
+                            <button id="gender-female" class="btn btn-outline" style="flex: 1; border-radius: 8px; padding: 10px;">Female</button>
+                        </div>
+                    </div>
+
+                    <label style="font-size: 0.9rem; color: #94a3b8; margin-top: 1.5rem; display: block;">Skin Tone</label>
+                    <div class="skintone-picker" id="skintone-picker">
+                        <div class="skintone-option" style="background: #fdf5e2;" data-hex="#fdf5e2"></div>
+                        <div class="skintone-option" style="background: #f3e5ab;" data-hex="#f3e5ab"></div>
+                        <div class="skintone-option" style="background: #e5c298;" data-hex="#e5c298"></div>
+                        <div class="skintone-option" style="background: #d2a679;" data-hex="#d2a679"></div>
+                        <div class="skintone-option" style="background: #996633;" data-hex="#996633"></div>
+                        <div class="skintone-option" style="background: #663300;" data-hex="#663300"></div>
+                        <div class="skintone-option" style="background: #3d1f00;" data-hex="#3d1f00"></div>
+                    </div>
+
+                    <div id="body-shape-card" class="glass-panel" style="margin-top: 2rem; border: 1px solid var(--primary-color); display: none;">
+                        <h4 style="color: var(--primary-color); margin-bottom: 0.5rem;">AI Body Shape Analysis</h4>
+                        <p id="body-shape-text" style="font-size: 0.95rem; font-weight: 500;">Calculating...</p>
+                    </div>
+                </div>
+            </div>
+            
+            <button class="save-btn" id="save-profile">Save Digital Twin</button>
+            <div class="status-msg" id="status-msg"></div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let selectedSkinTone = '#e5c298';
+        let selectedGender = 'Female';
+
+        // Gender Selection Logic
+        const maleBtn = document.getElementById('gender-male');
+        const femaleBtn = document.getElementById('gender-female');
+
+        function updateGenderUI(gender) {
+            selectedGender = gender;
+            maleBtn.style.background = gender === 'Male' ? 'var(--primary-color)' : 'transparent';
+            femaleBtn.style.background = gender === 'Female' ? 'var(--primary-color)' : 'transparent';
+        }
+
+        maleBtn.onclick = () => updateGenderUI('Male');
+        femaleBtn.onclick = () => updateGenderUI('Female');
+
+        // Initialize picker
+        document.querySelectorAll('.skintone-option').forEach(opt => {
+            opt.onclick = () => {
+                document.querySelectorAll('.skintone-option').forEach(o => o.classList.remove('active'));
+                opt.classList.add('active');
+                selectedSkinTone = opt.dataset.hex;
+            };
+        });
+
+        // Link slider values - REMOVED since we use type=number now
+        
+        function calculateBodyShape(chest, waist, hips) {
+            const card = document.getElementById('body-shape-card');
+            const text = document.getElementById('body-shape-text');
+            
+            if (!chest || !waist || !hips) {
+                card.style.display = 'none';
+                return;
+            }
+
+            card.style.display = 'block';
+            let shape = "Balanced Proportion";
+            
+            // Basic logic: Hourglass (Bust/Hips match, Waist is small)
+            if (Math.abs(chest - hips) <= 5 && (chest - waist) >= 15) {
+                shape = "Hourglass (Balanced & Curvy) ⌛";
+            } else if (hips > chest + 5) {
+                shape = "Pear (Graceful Curves) 🍐";
+            } else if (chest > hips + 5) {
+                shape = "Inverted Triangle (Powerful Frame) ▽";
+            } else if (Math.abs(chest - waist) < 10 && Math.abs(hips - waist) < 10) {
+                shape = "Rectangle (Athletic Silhouette) █";
+            }
+            
+            text.textContent = shape;
+        }
+
+        async function loadProfile() {
+            const msg = document.getElementById('status-msg');
+            try {
+                const profile = await apiCall('/profile/');
+                document.getElementById('p-height').value = profile.height;
+                document.getElementById('p-weight').value = profile.weight;
+                document.getElementById('p-chest').value = profile.chest;
+                document.getElementById('p-waist').value = profile.waist;
+                document.getElementById('p-hips').value = profile.hips;
+                document.getElementById('p-shoulders').value = profile.shoulders;
+                document.getElementById('p-legs').value = profile.legs;
+                
+                calculateBodyShape(profile.chest, profile.waist, profile.hips);
+                updateGenderUI(profile.gender || 'Female');
+
+                selectedSkinTone = profile.skin_tone;
+                document.querySelectorAll('.skintone-option').forEach(opt => {
+                    if (opt.dataset.hex === selectedSkinTone) opt.classList.add('active');
+                });
+            } catch (e) { 
+                console.error(e);
+                msg.style.color = '#ef4444';
+                msg.textContent = 'Error loading profile: ' + e.message;
+            }
+        }
+
+        document.getElementById('save-profile').onclick = async () => {
+            const btn = document.getElementById('save-profile');
+            const msg = document.getElementById('status-msg');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            
+            const chest = parseFloat(document.getElementById('p-chest').value) || 92;
+            const waist = parseFloat(document.getElementById('p-waist').value) || 68;
+            const hips = parseFloat(document.getElementById('p-hips').value) || 95;
+
+            const data = {
+                height: parseFloat(document.getElementById('p-height').value) || 170,
+                weight: parseFloat(document.getElementById('p-weight').value) || 65,
+                chest: chest,
+                waist: waist,
+                hips: hips,
+                shoulders: parseFloat(document.getElementById('p-shoulders').value) || 40,
+                legs: parseFloat(document.getElementById('p-legs').value) || 80,
+                skin_tone: selectedSkinTone,
+                gender: selectedGender
+            };
+            
+            try {
+                await apiCall('/profile/', {
+                    method: 'POST',
+                    body: data
+                });
+                calculateBodyShape(chest, waist, hips);
+                msg.style.color = '#10b981';
+                msg.textContent = 'Digital Twin saved successfully! ✨';
+                setTimeout(() => msg.textContent = '', 3000);
+            } catch (e) {
+                msg.style.color = '#ef4444';
+                msg.textContent = 'Error: ' + e.message;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Save Digital Twin';
+            }
+        };
+
+        loadProfile();
+    </script>
+</body>
+</html>

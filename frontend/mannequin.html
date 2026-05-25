@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>3D Mannequin - GarderobeAI</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/geometries/DecalGeometry.js"></script>
+    <style>
+        #canvas-container {
+            width: 100%;
+            height: 600px;
+            background: radial-gradient(circle at center, #1e1b4b 0%, #020617 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 10;
+        }
+
+        .clothing-item {
+            width: 100%;
+            height: 120px;
+            object-fit: contain;
+            border-radius: 12px;
+            cursor: pointer;
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.3s ease;
+        }
+        .clothing-item:hover {
+            transform: scale(1.05);
+            border-color: var(--accent-color);
+            background: rgba(255,255,255,0.1);
+        }
+
+        #3d-canvas {
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-overlay {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 10px 20px;
+            border-radius: 30px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            z-index: 100;
+        }
+
+        .control-btn {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            background: var(--primary-color);
+            border-radius: 50%;
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--primary-color);
+        }
+        
+        .tweak-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(15, 23, 42, 0.85);
+            padding: 15px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-size: 0.8rem;
+            width: 180px;
+            display: none;
+            z-index: 1000;
+        }
+        .tweak-panel input { width: 100%; margin-top: 5px; }
+    </style>
+</head>
+
+<body>
+    <div class="page-bg"></div>
+    <div class="page-overlay"></div>
+    <nav>
+        <a href="welcome.html" class="logo-container">
+            <img src="assets/logo_clean.png" alt="GarderobeAI" class="logo-img">
+            <span class="logo">GarderobeAI</span>
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html">My Wardrobe</a>
+            <a href="upload.html">Upload</a>
+            <a href="recommend.html">Get Outfit</a>
+            <a href="mannequin.html" style="color: #fff;">3D View</a>
+            <a href="profile.html">Profile</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container animate-in">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h1>Interactive Showroom</h1>
+            <a href="welcome.html" class="btn btn-primary" style="background: var(--accent-color);">Exit Showroom</a>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 2rem;">
+            <div>
+                <div id="canvas-container">
+                    <div id="3d-canvas"></div>
+                    <div class="tweak-panel" id="tweak-controls">
+                        <strong>Adjust Fit</strong>
+                        <div style="margin-top:10px">⬆⬇ Vertical (Y)</div>
+                        <input type="range" id="tweak-y" min="0.5" max="2.0" step="0.01" value="1.2">
+                        <div style="margin-top:8px">⬅➡ Horizontal (X)</div>
+                        <input type="range" id="tweak-x" min="-0.5" max="0.5" step="0.01" value="0">
+                        <div style="margin-top:8px">⤢ Scale</div>
+                        <input type="range" id="tweak-s" min="0.1" max="1.5" step="0.01" value="0.5">
+                        <div style="margin-top:8px">↻ Rotation</div>
+                        <input type="range" id="tweak-r" min="-3.14" max="3.14" step="0.01" value="0">
+                        <button class="btn btn-primary" style="width:100%; margin-top:15px; padding:5px; background:#ef4444;" onclick="clearClothing()">✕ Clear</button>
+                    </div>
+                    <div class="controls-overlay">
+                        <button class="btn btn-primary" id="reset-cam"
+                            style="padding: 5px 15px; font-size: 0.8rem;">Reset View</button>
+                        <button class="btn btn-primary" id="auto-rotate"
+                            style="padding: 5px 15px; font-size: 0.8rem;">Auto-Rotate: ON</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="glass-panel" style="display: flex; flex-direction: column; height: 600px;">
+                <h3>Digital Wardrobe</h3>
+                <div style="margin-bottom: 1rem;">
+                    <button class="btn btn-primary" style="width:100%;" onclick="document.getElementById('clothing-upload').click()">
+                        Upload from Wardrobe
+                    </button>
+                    <input type="file" id="clothing-upload" style="display:none" accept="image/*">
+                </div>
+                <div id="mannequin-grid"
+                    style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; overflow-y: auto; padding-right: 5px;">
+                    <!-- Gallery items will appear here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let scene, camera, renderer, mannequin, controls;
+        let isAutoRotate = true;
+        let activeGarment = null;
+        let userProfile = null; // Store profile from API
+
+        async function init3D() {
+            const container = document.getElementById('canvas-container');
+            if (!container) return;
+
+            try {
+                // Initialize Renderer & Scene first so something is visible
+                scene = new THREE.Scene();
+                camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 0.1, 1000);
+                camera.position.set(0, 1.2, 3.5);
+
+                renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+                renderer.setSize(container.clientWidth, container.clientHeight);
+                renderer.setPixelRatio(window.devicePixelRatio);
+                renderer.shadowMap.enabled = true;
+                renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+                renderer.toneMapping = THREE.ReinhardToneMapping;
+                renderer.toneMappingExposure = 1.5;
+                const canvasBox = document.getElementById('3d-canvas');
+                canvasBox.innerHTML = '';
+                canvasBox.appendChild(renderer.domElement);
+                renderer.setClearColor(0x000000, 0); // Ensure transparency
+
+                // Bright Lighting
+                scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+                const mainLight = new THREE.DirectionalLight(0xffffff, 1.0);
+                mainLight.position.set(5, 10, 7); mainLight.castShadow = true;
+                scene.add(mainLight);
+
+                const rimLight = new THREE.PointLight(0xa855f7, 1.5, 10);
+                rimLight.position.set(-2, 2, -2); scene.add(rimLight);
+
+                // Floor
+                const floor = new THREE.Mesh(
+                    new THREE.PlaneGeometry(20, 20),
+                    new THREE.MeshPhysicalMaterial({ color: 0x020617, roughness: 0.1, metalness: 0.8 })
+                );
+                floor.rotation.x = -Math.PI / 2; floor.position.y = -0.01; floor.receiveShadow = true;
+                scene.add(floor);
+
+                controls = new THREE.OrbitControls(camera, renderer.domElement);
+                controls.enableDamping = true;
+                controls.target.set(0, 1, 0);
+
+                animate();
+
+                // Load Profile & Create Mannequin
+                try {
+                    const profileData = await apiCall('/profile/');
+                    if (profileData && profileData.height) {
+                        userProfile = profileData;
+                        // Sanity check for skin_tone
+                        if (!userProfile.skin_tone || !userProfile.skin_tone.startsWith('#')) {
+                            userProfile.skin_tone = '#e5c298';
+                        }
+                    } else {
+                        throw new Error("Incomplete profile");
+                    }
+                } catch (pe) {
+                    console.warn("Using default profile:", pe);
+                    userProfile = { height: 175, weight: 70, chest: 95, waist: 80, hips: 95, shoulders: 45, legs: 100, gender: 'Female', skin_tone: '#e5c298' };
+                }
+
+                createMannequin();
+                loadClothes();
+            } catch (e) {
+                console.error("Init error:", e);
+                const canvas = document.getElementById('3d-canvas');
+                if (canvas) canvas.innerHTML = `<div style="color: #ef4444; padding: 40px; text-align: center; background: rgba(0,0,0,0.5); border-radius: 15px;"><h3>3D Engine Error</h3><p>${e.message}</p><button onclick="location.reload()" class="btn btn-primary" style="margin-top: 10px;">Retry</button></div>`;
+            }
+        }
+
+        function createMannequin() {
+            // 1. Remove everything currently in the mannequin group
+            if (mannequin) {
+                scene.remove(mannequin);
+            }
+            mannequin = new THREE.Group();
+            scene.add(mannequin);
+
+            const loader = new THREE.GLTFLoader();
+
+            // 2. Ensure this path matches your folder structure exactly
+            const fileName = userProfile.gender === 'Female' ? 'models/female.glb' : 'models/male.glb';
+
+            console.log("Attempting to load:", fileName);
+
+            loader.load(fileName, (gltf) => {
+                const importedModel = gltf.scene;
+                
+                // 3. Setup Shadows & Materials — set renderOrder = 1 on body
+                importedModel.traverse((node) => {
+                    if (node.isMesh) {
+                        node.castShadow = node.receiveShadow = true;
+                        node.renderOrder = 1; // Body draws first; decal draws on top at renderOrder=2
+                        if (userProfile.skin_tone && !node.material.map) {
+                            node.material.color.set(userProfile.skin_tone);
+                        }
+                    }
+                });
+
+                // 4. Intelligent Scaling based on User Metrics
+                const box = new THREE.Box3().setFromObject(importedModel);
+                const size = box.getSize(new THREE.Vector3());
+                const center = box.getCenter(new THREE.Vector3());
+                
+                const targetHeight = (userProfile.height || 175) / 100;
+                const scaleFactor = targetHeight / size.y;
+                
+                importedModel.scale.set(scaleFactor, scaleFactor, scaleFactor);
+                
+                importedModel.position.x = -center.x * scaleFactor;
+                importedModel.position.z = -center.z * scaleFactor;
+                importedModel.position.y = -box.min.y * scaleFactor;
+                
+                // FACE THE CAMERA
+                importedModel.rotation.y = Math.PI;
+
+                mannequin.add(importedModel);
+                console.log("Success! Anatomical Model Face Corrected.");
+                
+                if (activeGarment) applyTexture(activeGarment.url, activeGarment.category, true);
+
+            }, (xhr) => { 
+                if (xhr.total > 0) console.log((xhr.loaded / xhr.total * 100) + '% loaded'); 
+            }, (error) => {
+                console.error("FAILED TO LOAD MODEL:", error);
+                createSculptedFallback();
+            });
+        }
+
+        function createSculptedFallback() {
+            mannequin = new THREE.Group();
+            const h = (userProfile.height || 175) / 100;
+            const sWidth = (userProfile.shoulders || 45) / 100;
+            const waistR = (userProfile.waist || 80) / (200 * Math.PI);
+            const skinTone = userProfile.skin_tone || '#e5c298';
+
+            const mat = new THREE.MeshPhysicalMaterial({ color: skinTone, roughness: 0.4 });
+
+            const torso = new THREE.Mesh(new THREE.CylinderGeometry(sWidth / 2, waistR, 0.6, 32), mat);
+            torso.position.y = h - 0.4;
+            torso.renderOrder = 1;
+            mannequin.add(torso);
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.09, 32, 32), mat);
+            head.position.y = h - 0.08;
+            head.renderOrder = 1;
+            mannequin.add(head);
+
+            scene.add(mannequin);
+            if (activeGarment) applyDecal(activeGarment.url);
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            if (isAutoRotate && mannequin) mannequin.rotation.y += 0.01;
+            if (controls) controls.update();
+            if (renderer && scene && camera) renderer.render(scene, camera);
+        }
+
+        // ─── Virtual Try-On Decal System ───────────────────────────────────────────
+        let currentDecal = null;
+        let debugSphere = null;
+        let decalSettings = { x: 0, y: 1.2, scale: 0.5, rotation: 0 };
+        let activeMaterial = null;
+
+        function applyDecal(imageUrl) {
+            if (!mannequin) return;
+            document.getElementById('tweak-controls').style.display = 'block';
+
+            const img = new Image();
+            img.crossOrigin = "anonymous";
+            img.onload = function () {
+                // ── Background removal: flood-fill from corner pixel ──
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                ctx.drawImage(img, 0, 0);
+
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                const data = imageData.data;
+                const bgR = data[0], bgG = data[1], bgB = data[2];
+                for (let i = 0; i < data.length; i += 4) {
+                    const diff = Math.abs(data[i] - bgR) + Math.abs(data[i+1] - bgG) + Math.abs(data[i+2] - bgB);
+                    if (diff < 60) data[i + 3] = 0;
+                }
+                ctx.putImageData(imageData, 0, 0);
+
+                const texture = new THREE.CanvasTexture(canvas);
+
+                // ── FIX: depthTest:false eliminates ALL Z-fighting ──
+                // The decal always renders visually on top of the body because
+                // renderOrder=2 > body renderOrder=1, and the depth buffer is
+                // bypassed entirely for the shirt layer.
+                activeMaterial = new THREE.MeshPhongMaterial({
+                    map: texture,
+                    transparent: true,    // Transparent PNG: preserves shirt shape
+                    alphaTest: 0.05,      // Discard near-invisible fragments
+                    depthTest: false,     // KEY FIX: ignore depth — no Z-fighting ever
+                    depthWrite: false,    // Don't corrupt the depth buffer
+                    side: THREE.FrontSide
+                });
+
+                updateDecal();
+            };
+            img.src = imageUrl;
+        }
+
+        function updateDecal() {
+            if (!activeMaterial) return;
+
+            // ── Tear down previous decal + debug sphere ──
+            if (currentDecal) { mannequin.remove(currentDecal); currentDecal = null; }
+            if (debugSphere)  { mannequin.remove(debugSphere);  debugSphere  = null; }
+
+            // ── Ensure all body meshes have renderOrder = 1 ──
+            mannequin.traverse(n => {
+                if (n.isMesh) n.renderOrder = 1;
+            });
+
+            // ── Find target body mesh (prefer named torso/body/chest, else largest) ──
+            let targetMesh = null;
+            let largestCount = 0;
+            let foundNamed = false;
+            mannequin.traverse(n => {
+                if (!n.isMesh || !n.geometry || !n.geometry.attributes.position) return;
+                const name = n.name.toLowerCase();
+                if (!foundNamed && (name.includes('torso') || name.includes('body') || name.includes('chest'))) {
+                    targetMesh = n;
+                    foundNamed = true;
+                    return;
+                }
+                if (!foundNamed) {
+                    const count = n.geometry.attributes.position.count;
+                    if (count > largestCount) { largestCount = count; targetMesh = n; }
+                }
+            });
+            if (!targetMesh) { console.warn('No target mesh found for decal'); return; }
+
+            // ── Sync world matrices before any world-space computation ──
+            mannequin.updateMatrixWorld(true);
+            targetMesh.updateMatrixWorld(true);
+
+            // ── World-space bounding box of target mesh ──
+            const worldBox = new THREE.Box3().setFromObject(targetMesh);
+            const modelHeight = worldBox.max.y - worldBox.min.y;
+
+            // Chest Y: ~72% up from feet  
+            const chestY = worldBox.min.y + modelHeight * 0.72;
+
+            // ── Correct Projection Vector ──
+            // The camera faces -Z toward the mannequin.  worldBox.max.z is the
+            // front surface of the chest.  We place the decal center exactly ON
+            // that front face and let DecalGeometry project inward.
+            // Adding +0.5 offsets the projection ORIGIN in front of the surface
+            // so the projection box definitely intersects the mesh from the front.
+            const meshCenterZ  = (worldBox.max.z + worldBox.min.z) * 0.5;
+            const frontSurface = worldBox.max.z;       // camera-facing face
+            const projZ        = frontSurface + 0.5;   // project FROM in front
+
+            const position = new THREE.Vector3(
+                decalSettings.x,
+                chestY + (decalSettings.y - 1.2) * 0.5,
+                projZ
+            );
+
+            // ── DEBUG: red sphere at projection point ──
+            const dbGeo = new THREE.SphereGeometry(0.025, 8, 8);
+            const dbMat = new THREE.MeshBasicMaterial({ color: 0xff0000, depthTest: false });
+            debugSphere = new THREE.Mesh(dbGeo, dbMat);
+            debugSphere.position.copy(position);
+            debugSphere.renderOrder = 3;
+            mannequin.add(debugSphere);
+
+            // Orientation: project along -Z (toward mannequin front face)
+            const orientation = new THREE.Euler(0, 0, decalSettings.rotation);
+
+            // Size: width/height relative to model, depth = enough to intersect chest
+            const meshDepth = worldBox.max.z - worldBox.min.z;
+            const s = decalSettings.scale;
+            const size = new THREE.Vector3(
+                s * modelHeight * 0.5,
+                s * modelHeight * 0.4,
+                meshDepth + 0.6    // deep enough to reach front surface from projZ
+            );
+
+            try {
+                const decalGeom = new THREE.DecalGeometry(targetMesh, position, orientation, size);
+                currentDecal = new THREE.Mesh(decalGeom, activeMaterial);
+                // renderOrder = 2 > body renderOrder = 1 → shirt always on top
+                currentDecal.renderOrder = 2;
+                mannequin.add(currentDecal);
+                console.log('Decal projected at', position, 'size', size);
+            } catch (e) {
+                console.warn('DecalGeometry error:', e.message);
+            }
+        }
+
+        function clearClothing() {
+            if (currentDecal) { mannequin.remove(currentDecal); currentDecal = null; }
+            if (debugSphere)  { mannequin.remove(debugSphere);  debugSphere  = null; }
+            activeMaterial = null;
+            document.getElementById('tweak-controls').style.display = 'none';
+        }
+
+        // Tweak Listeners
+        document.getElementById('tweak-y').oninput = (e) => { decalSettings.y = parseFloat(e.target.value); updateDecal(); };
+        document.getElementById('tweak-x').oninput = (e) => { decalSettings.x = parseFloat(e.target.value); updateDecal(); };
+        document.getElementById('tweak-s').oninput = (e) => { decalSettings.scale = parseFloat(e.target.value); updateDecal(); };
+        document.getElementById('tweak-r').oninput = (e) => { decalSettings.rotation = parseFloat(e.target.value); updateDecal(); };
+
+        // File Upload Handler
+        document.getElementById('clothing-upload').onchange = function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const url = event.target.result;
+                // Add to gallery
+                const grid = document.getElementById('mannequin-grid');
+                const img = document.createElement('img');
+                img.src = url;
+                img.className = 'clothing-item';
+                img.onclick = () => applyDecal(url);
+                grid.prepend(img);
+                applyDecal(url);
+            };
+            reader.readAsDataURL(file);
+        };
+
+        async function loadClothes() {
+            try {
+                // Correct endpoint is /clothes/ based on urls.py
+                const clothes = await apiCall('/clothes/');
+                const grid = document.getElementById('mannequin-grid');
+                grid.innerHTML = '';
+                
+                if (!clothes || clothes.length === 0) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align:center; color:#94a3b8; font-size:0.8rem;">Your wardrobe is empty. Upload a photo above!</p>';
+                    return;
+                }
+
+                clothes.forEach(item => {
+                    const img = document.createElement('img');
+                    // Ensure full URL if relative
+                    const imgUrl = item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`;
+                    img.src = imgUrl;
+                    img.className = 'clothing-item';
+                    img.onclick = () => applyDecal(imgUrl);
+                    grid.appendChild(img);
+                });
+            } catch (e) {
+                console.error("Load clothes error:", e);
+                const grid = document.getElementById('mannequin-grid');
+                grid.innerHTML = `<p style="grid-column: 1/-1; text-align:center; color:#ef4444; font-size:0.8rem;">Error loading wardrobe: ${e.message}</p>`;
+            }
+        }
+
+        document.getElementById('reset-cam').onclick = () => {
+            controls.reset();
+            camera.position.set(0, 1.2, 3.5);
+        };
+        document.getElementById('auto-rotate').onclick = function () {
+            isAutoRotate = !isAutoRotate;
+            this.textContent = `Auto-Rotate: ${isAutoRotate ? 'ON' : 'OFF'}`;
+        };
+
+        init3D();
+    </script>
+</body>
+
+</html>

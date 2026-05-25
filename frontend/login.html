@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GarderobeAI - Login</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="page-bg"></div>
+    <div class="page-overlay"></div>
+    <nav>
+        <a href="index.html" class="logo-container">
+            <img src="assets/logo_clean.png" alt="GarderobeAI" class="logo-img">
+            <span class="logo">GarderobeAI</span>
+        </a>
+    </nav>
+
+    <div class="container center-content animate-in">
+        <div id="auth-container" class="glass-panel">
+            <h2 id="form-title" style="text-align: center; margin-bottom: 2rem;">Welcome</h2>
+            
+            <form id="auth-form">
+                <div class="form-group" id="username-group" style="display: none;">
+                    <label>Username</label>
+                    <input type="text" id="username" class="form-control" placeholder="Choose a username">
+                </div>
+                <div class="form-group" id="email-group" style="display: none;">
+                    <label>Email</label>
+                    <input type="email" id="email" class="form-control" placeholder="Enter your email">
+                </div>
+                <div class="form-group" id="login-username-group">
+                    <label>Username</label>
+                    <input type="text" id="login-username" class="form-control" placeholder="Enter your username">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="password" class="form-control" placeholder="Enter password">
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;" id="submit-btn">Login</button>
+                <p style="text-align: center; margin-top: 1rem; font-size: 0.9rem;">
+                    <a href="#" id="toggle-auth" style="color: var(--primary-color);">Need an account? Register</a>
+                </p>
+                <p id="error-msg" style="color: var(--accent-color); text-align: center; margin-top: 1rem; display: none;"></p>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        let isLogin = true;
+        const toggleBtn = document.getElementById('toggle-auth');
+        const formTitle = document.getElementById('form-title');
+        const submitBtn = document.getElementById('submit-btn');
+        const form = document.getElementById('auth-form');
+
+        toggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+            document.getElementById('username-group').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('email-group').style.display = isLogin ? 'none' : 'block';
+            document.getElementById('login-username-group').style.display = isLogin ? 'block' : 'none';
+            formTitle.textContent = isLogin ? 'Welcome Back' : 'Create Account';
+            submitBtn.textContent = isLogin ? 'Login' : 'Register';
+            toggleBtn.textContent = isLogin ? 'Need an account? Register' : 'Already have an account? Login';
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const errorMsg = document.getElementById('error-msg');
+            errorMsg.style.display = 'none';
+
+            try {
+                if (isLogin) {
+                    const username = document.getElementById('login-username').value;
+                    const password = document.getElementById('password').value;
+                    const res = await apiCall('/login/', {
+                        method: 'POST',
+                        body: { username, password }
+                    });
+                    setToken(res.access);
+                    window.location.href = 'welcome.html';
+                } else {
+                    const username = document.getElementById('username').value;
+                    const email = document.getElementById('email').value;
+                    const password = document.getElementById('password').value;
+                    await apiCall('/register/', {
+                        method: 'POST',
+                        body: { username, email, password }
+                    });
+                    const res = await apiCall('/login/', {
+                        method: 'POST',
+                        body: { username, password }
+                    });
+                    setToken(res.access);
+                    window.location.href = 'welcome.html';
+                }
+            } catch (err) {
+                errorMsg.textContent = err.message;
+                errorMsg.style.display = 'block';
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - GarderobeAI</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="page-bg"></div>
+    <div class="page-overlay"></div>
+    <nav>
+        <a href="welcome.html" class="logo-container">
+            <img src="assets/logo_clean.png" alt="GarderobeAI" class="logo-img">
+            <span class="logo">GarderobeAI</span>
+        </a>
+        <div class="nav-links">
+            <a href="dashboard.html" style="color: #fff;">My Wardrobe</a>
+            <a href="upload.html">Upload</a>
+            <a href="recommend.html">Get Outfit</a>
+            <a href="mannequin.html">3D View</a>
+            <a href="profile.html">Profile</a>
+            <a href="#" onclick="logout()">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container animate-in">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+            <h1>My Wardrobe</h1>
+            <a href="upload.html" class="btn btn-primary">+ Add Item</a>
+        </div>
+        
+        <div class="clothing-grid" id="clothes-grid">
+            <p>Loading your wardrobe...</p>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div id="edit-modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center;">
+        <div class="glass-panel" style="width: 100%; max-width: 400px;">
+            <h2>Edit Item</h2>
+            <form id="edit-form">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label>Category</label>
+                    <select id="edit-category" class="form-control" style="background: #1a1025; color: white;">
+                        <option value="Shirt">Shirt</option>
+                        <option value="Tshirt">Tshirt</option>
+                        <option value="Pants">Pants</option>
+                        <option value="Trousers">Trousers</option>
+                        <option value="Lower">Lower</option>
+                        <option value="Skirt">Skirt</option>
+                        <option value="Dress">Dress</option>
+                        <option value="Jacket">Jacket</option>
+                        <option value="Shoes">Shoes</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin-top: 1.5rem;">
+                    <label>Occasion</label>
+                    <select id="edit-occasion" class="form-control" style="background: #1a1025; color: white;">
+                        <option value="Casual">Casual</option>
+                        <option value="Formal">Formal</option>
+                        <option value="Party">Party</option>
+                        <option value="Work">Work</option>
+                        <option value="Sport">Sport</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 2rem;">
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">Save Changes</button>
+                    <button type="button" onclick="closeEditModal()" class="btn btn-outline" style="flex: 1;">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+    <script>
+        async function loadClothes() {
+            try {
+                const clothes = await apiCall('/clothes/');
+                const grid = document.getElementById('clothes-grid');
+                grid.innerHTML = '';
+                
+                if (clothes.length === 0) {
+                    grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #94a3b8; margin-top: 2rem;">Your wardrobe is empty. <a href="upload.html" style="color: var(--primary-color);">Upload some clothes</a> to get started!</p>';
+                    return;
+                }
+
+                clothes.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'glass-panel clothing-card';
+                    const imageUrl = item.image.startsWith('http') ? item.image : `http://127.0.0.1:8000${item.image}`;
+                    card.innerHTML = `
+                        <img src="${imageUrl}" alt="${item.category}">
+                        <div class="clothing-info">
+                            <h3 style="margin-bottom: 0.2rem; font-size: 1.2rem;">${item.category || 'Clothing'}</h3>
+                            <div style="font-size: 0.8rem; color: var(--accent-gold); margin-bottom: 0.5rem; text-transform: uppercase; letter-spacing: 1px;">
+                                ✨ ${item.occasion || 'Casual'}
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: flex-end;">
+                                <div style="display: flex; align-items: center; color: #cbd5e1; font-size: 0.9rem;">
+                                    <span class="color-dot" style="background-color: ${item.hex_color || '#ccc'};"></span>
+                                    ${item.color || 'Unknown'}
+                                </div>
+                                <div style="display: flex; gap: 10px;">
+                                    <button onclick="openEditModal(${item.id}, '${item.category}', '${item.occasion}')" style="background: transparent; border: none; color: #3b82f6; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Edit</button>
+                                    <button onclick="deleteItem(${item.id})" style="background: transparent; border: none; color: #ef4444; cursor: pointer; font-size: 0.85rem; font-weight: 600;">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    grid.appendChild(card);
+                });
+            } catch (error) {
+                console.error(error);
+                document.getElementById('clothes-grid').innerHTML = '<p style="color: var(--accent-color);">Failed to load wardrobe.</p>';
+            }
+        }
+
+        function openEditModal(id, category, occasion) {
+            document.getElementById('edit-id').value = id;
+            document.getElementById('edit-category').value = category;
+            document.getElementById('edit-occasion').value = occasion;
+            document.getElementById('edit-modal').style.display = 'flex';
+        }
+
+        function closeEditModal() {
+            document.getElementById('edit-modal').style.display = 'none';
+        }
+
+        document.getElementById('edit-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('edit-id').value;
+            const category = document.getElementById('edit-category').value;
+            const occasion = document.getElementById('edit-occasion').value;
+
+            try {
+                await apiCall(`/clothes/${id}/update/`, {
+                    method: 'PATCH',
+                    body: { category, occasion }
+                });
+                closeEditModal();
+                loadClothes();
+            } catch (error) {
+                alert('Failed to update item: ' + error.message);
+            }
+        });
+
+        async function deleteItem(id) {
+            if (!confirm('Are you sure you want to delete this item?')) return;
+            try {
+                await apiCall(`/clothes/${id}/`, { method: 'DELETE' });
+                loadClothes(); // Refresh the list
+            } catch (error) {
+                alert('Failed to delete item: ' + error.message);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadClothes);
+    </script>
+</body>
+</html>
