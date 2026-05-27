@@ -2,7 +2,7 @@
 
 <img src="frontend/assets/logo_clean.png" alt="GarderobeAI Logo" width="120"/>
 
-# 👗 GarderobeAI
+#  GarderobeAI
 
 ### *Your Wardrobe, Evolved.*
 
